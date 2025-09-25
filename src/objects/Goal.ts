@@ -1,0 +1,47 @@
+// src/objects/Goal.ts
+import Phaser from 'phaser';
+
+export class Goal {
+  public col: number;
+  public row: number;
+  private scene: Phaser.Scene;
+  private gridSize: number;
+  private graphics: Phaser.GameObjects.Graphics;
+
+  constructor(scene: Phaser.Scene, col: number, row: number, gridSize: number) {
+    this.scene = scene;
+    this.col = col;
+    this.row = row;
+    this.gridSize = gridSize;
+
+    this.graphics = scene.add.graphics();
+    this.draw();
+  }
+
+  private draw() {
+    const x = (this.col + 0.5) * this.gridSize;
+    const y = (this.row + 0.5) * this.gridSize;
+    const size = this.gridSize * 0.8;
+
+    // Рамка ворот — зелёная
+    this.graphics.lineStyle(6, 0x00cc00);
+    this.graphics.strokeRect(x - size / 2, y - size / 2, size, size);
+
+    // Перекладина
+    this.graphics.lineStyle(4, 0x008800);
+    this.graphics.lineBetween(x - size / 2, y - size / 4, x + size / 2, y - size / 4);
+
+    // Фон (опционально)
+    this.graphics.fillStyle(0x00ff00, 0.1);
+    this.graphics.fillRect(x - size / 2, y - size / 2, size, size);
+  }
+
+  public isAt(col: number, row: number): boolean {
+    return this.col === col && this.row === row;
+  }
+
+  public destroy() {
+    this.graphics.destroy();
+  }
+}
+
