@@ -1,27 +1,26 @@
 // src/objects/Goal.ts
 import Phaser from 'phaser';
+import { GRID_SIZE } from "../constants";
 
 export class Goal {
   public col: number;
   public row: number;
   private scene: Phaser.Scene;
-  private gridSize: number;
   private graphics: Phaser.GameObjects.Graphics;
 
-  constructor(scene: Phaser.Scene, col: number, row: number, gridSize: number) {
+  constructor(scene: Phaser.Scene, col: number, row: number) {
     this.scene = scene;
     this.col = col;
     this.row = row;
-    this.gridSize = gridSize;
 
     this.graphics = scene.add.graphics();
     this.draw();
   }
 
   private draw() {
-    const x = (this.col + 0.5) * this.gridSize;
-    const y = (this.row + 0.5) * this.gridSize;
-    const size = this.gridSize * 0.8;
+    const x = (this.col + 0.5) * GRID_SIZE;
+    const y = (this.row + 0.5) * GRID_SIZE;
+    const size = GRID_SIZE * 0.8;
 
     // Рамка ворот — зелёная
     this.graphics.lineStyle(6, 0x00cc00);
@@ -40,8 +39,8 @@ export class Goal {
     return this.col === col && this.row === row;
   }
 
-  public destroy() {
-    this.graphics.destroy();
+  public destroy(fromScene?: boolean) {
+    this.graphics.destroy(fromScene);
   }
 }
 

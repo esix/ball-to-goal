@@ -1,5 +1,6 @@
 // src/objects/Pipe.ts
 import Phaser from 'phaser';
+import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "../constants";
 
 export enum PipeType {
   RightDown = 'RightDown',
@@ -8,43 +9,43 @@ export enum PipeType {
   LeftUp = 'LeftUp'
 }
 
+let id: number = 0;
+
 export class Pipe extends Phaser.GameObjects.Container {
   public col: number;
   public row: number;
   public type: PipeType;
-  private gridSize: number;
-  private gridWidth: number;
-  private gridHeight: number;
+  private id;
+  private hitArea: Phaser.GameObjects.Rectangle;
 
-  constructor(
-    scene: Phaser.Scene,
-    col: number,
-    row: number,
-    type: PipeType = PipeType.RightDown,
-    gridSize: number = 80,
-    gridWidth: number = 10,
-    gridHeight: number = 8
-  ) {
+  constructor(scene: Phaser.Scene, col: number, row: number, type: PipeType) {
     // Вычисляем позицию по центру клетки
-    const x = (col + 0.5) * gridSize;
-    const y = (row + 0.5) * gridSize;
+    const x = (col + 0.5) * GRID_SIZE;
+    const y = (row + 0.5) * GRID_SIZE;
 
     super(scene, x, y);
     this.col = col;
     this.row = row;
     this.type = type;
-    this.gridSize = gridSize;
-    this.gridWidth = gridWidth;
-    this.gridHeight = gridHeight;
 
     this.createGraphics();
-    this.makeInteractive();
+
+    this.hitArea = this.scene.add.rectangle(0, 0, GRID_SIZE, GRID_SIZE, 0x000000, 0);
+    this.hitArea.setOrigin(0.5);
+    this.hitArea.setInteractive({ draggable: true });
+    this.add(this.hitArea);
+
+    this.hitArea.on('pointerdown', this.onPointerDown);
+    this.scene.input.on('pointermove', this.onPointerMove);
+    this.scene.input.on('pointerup', this.onPointerUp);
+
     scene.add.existing(this);
+    this.id = id++;
   }
 
   private createGraphics() {
     const graphics = this.scene.add.graphics();
-    const S = this.gridSize;
+    const S = GRID_SIZE;
     const half = S / 2;
     const lineWidth = S * 0.5;
     const R = half; // радиус средней линии
@@ -78,41 +79,41 @@ export class Pipe extends Phaser.GameObjects.Container {
     this.add(graphics);
   }
 
-  private makeInteractive() {
-    const hitArea = this.scene.add.rectangle(0, 0, this.gridSize, this.gridSize, 0x000000, 0);
-    hitArea.setOrigin(0.5);
-    hitArea.setInteractive({ draggable: true });
-    this.add(hitArea);
-
-    hitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.dragOffset.x = pointer.x - this.x;
-      this.dragOffset.y = pointer.y - this.y;
-    });
-
-    hitArea.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.isDown) {
-        this.x = pointer.x - this.dragOffset.x;
-        this.y = pointer.y - this.dragOffset.y;
-      }
-    });
-
-    hitArea.on('pointerup', () => {
-      this.snapToGrid();
-    });
-  }
-
+  private isDragging: boolean = false;
   private dragOffset = { x: 0, y: 0 };
+
+  private onPointerDown = (pointer: Phaser.Input.Pointer) => {
+    this.dragOffset.x = pointer.x - this.x;
+    this.dragOffset.y = pointer.y - this.y;
+    this.isDragging = true;
+  };
+
+  private onPointerMove = (pointer: Phaser.Input.Pointer) => {
+    if (this.isDragging) {
+      this.x = pointer.x - this.dragOffset.x;
+      this.y = pointer.y - this.dragOffset.y;
+      if (!pointer.isDown) {
+        this.isDragging = false;
+        this.snapToGrid();
+      }
+    }
+  };
+
+  private onPointerUp = () => {
+    this.isDragging = false;
+    this.snapToGrid();
+  };
 
   private snapToGrid() {
     const col = Phaser.Math.Clamp(
-      Math.floor(this.x / this.gridSize),
+      Math.floor(this.x / GRID_SIZE),
       0,
-      this.gridWidth - 1
+      FIELD_WIDTH - 1
     );
     const row = Phaser.Math.Clamp(
-      Math.floor(this.y / this.gridSize),
+      Math.floor(this.y / GRID_SIZE),
       0,
-      this.gridHeight - 1
+      FIELD_HEIGHT - 1
     );
 
     // Обновляем логические координаты
@@ -120,8 +121,8 @@ export class Pipe extends Phaser.GameObjects.Container {
     this.row = row;
 
     // Перемещаем в центр клетки
-    this.x = (col + 0.5) * this.gridSize;
-    this.y = (row + 0.5) * this.gridSize;
+    this.x = (col + 0.5) * GRID_SIZE;
+    this.y = (row + 0.5) * GRID_SIZE;
   }
 
   public getNewDirection(dirX: number, dirY: number): { dirX: number; dirY: number } {
@@ -160,5 +161,12 @@ export class Pipe extends Phaser.GameObjects.Container {
     }
 
     return result;
+  }
+
+  public destroy(fromScene?: boolean) {
+    this.hitArea.off('pointerdown', this.onPointerDown);
+    this.scene.input.off('pointermove', this.onPointerMove);
+    this.scene.input.off('pointerup', this.onPointerUp);
+    super.destroy(fromScene);
   }
 }

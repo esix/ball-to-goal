@@ -1,10 +1,11 @@
 import 'phaser';
 import { MainScene } from './scenes/MainScene';
+import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "./constants";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: GRID_SIZE * FIELD_WIDTH,
+  height: GRID_SIZE * FIELD_HEIGHT,
   backgroundColor: '#4488ff',
   scene: [MainScene],
   scale: {

@@ -3,63 +3,73 @@ import Phaser from 'phaser';
 import { Pipe, PipeType } from '../objects/Pipe';
 import { Goal } from '../objects/Goal';
 import { Cannon } from "../objects/Cannon";
+import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "../constants";
 
-const level1 = {
-  cannon: { col: 1, row: 4 },
-  goal: { col: 9, row: 3 },
-  pipes: [
-    { col: 0, row: 0, type: PipeType.RightDown },    { col: 3, row: 0, type: PipeType.LeftDown },
-    { col: 0, row: 3, type: PipeType.RightUp },      { col: 3, row: 3, type: PipeType.LeftUp },
+interface LevelData {
+  cannon: { col: number; row: number };
+  goal: { col: number; row: number };
+  pipes: Array<{ type: PipeType; col: number; row: number }>;
+  walls: Array<{ col: number; row: number }>; // ← новое!
+}
 
-  ]
-};
+const LEVELS: LevelData[] = [
+  {
+    cannon: { col: 1, row: 4 },
+    goal: { col: 6, row: 1 },
+    pipes: [
+      { col: 1, row: 3, type: PipeType.LeftUp },
+    ],
+    walls: [],
+  },
+  {
+    cannon: { col: 1, row: 4 },
+    goal: { col: 9, row: 3 },
+    pipes: [
+      { col: 0, row: 0, type: PipeType.RightDown },    { col: 3, row: 0, type: PipeType.LeftDown },
+      { col: 0, row: 3, type: PipeType.RightUp },      { col: 3, row: 3, type: PipeType.LeftUp },
+    ],
+    walls: [],
+  }
+];
+
 
 export class MainScene extends Phaser.Scene {
-  private gridSize = 80;
-  private gridWidth = 10;  // 10 клеток → 800px
-  private gridHeight = 8;  // 8 клеток → 640px (немного обрежется, но ок)
   private cannon!: Cannon;
   private pipes: Pipe[] = []; // будем хранить все трубки
   private balls: Phaser.GameObjects.Arc[] = [];
   private goal!: Goal;
+  private currentLevel: number;
 
   constructor() {
     super('MainScene');
+    this.currentLevel = 0;
   }
 
   preload(): void {
   }
 
-  create(): void {
-    this.cannon = new Cannon(this, level1.cannon.col, level1.cannon.row, this.gridSize);
-    this.goal = new Goal(this, level1.goal.col, level1.goal.row, this.gridSize);
-    this.pipes = level1.pipes.map(p =>
-      new Pipe(this, p.col, p.row, p.type, this.gridSize, this.gridWidth, this.gridHeight)
+  private loadLevel(i: number) {
+    this.cannon?.destroy(true);
+    this.goal?.destroy();
+    this.pipes.forEach(pipe => pipe.destroy(true));
+    this.tweens.killTweensOf(this.balls);
+    this.balls.forEach(ball => ball.destroy());
+    this.balls = [];
+
+    const level = LEVELS[i];
+    this.cannon = new Cannon(this, level.cannon.col, level.cannon.row);
+    this.goal = new Goal(this, level.goal.col, level.goal.row);
+    this.pipes = level.pipes.map(p =>
+      new Pipe(this, p.col, p.row, p.type)
     );
 
     // Привязываем выстрел
     this.cannon.onFire(() => this.launchBall());
+  }
 
-    const body = this.add.rectangle(0, 0, 50, 40, 0xff4444).setOrigin(0.5);
-    const barrel = this.add.rectangle(30, 0, 40, 20, 0xffff00).setOrigin(0, 0.5);
-
-    this.cannon.add([body, barrel]);
-
-    // Делаем пушку интерактивной
-    const hitArea = this.add.rectangle(0, 0, 60, 50, 0x000000, 0).setOrigin(0.5);
-    hitArea.setInteractive({useHandCursor: true});
-    this.cannon.add(hitArea);
-    hitArea.on('pointerover', () => {
-      this.cannon.setScale(1.1);
-    });
-    hitArea.on('pointerout', () => {
-      this.cannon.setScale(1);
-    });
-    hitArea.on('pointerdown', () => {
-      this.launchBall();
-    });
-
+  create(): void {
     this.drawGrid();
+    this.loadLevel(this.currentLevel);
   }
 
   private drawGrid() {
@@ -67,15 +77,15 @@ export class MainScene extends Phaser.Scene {
     graphics.lineStyle(1, 0xffffff, 0.3);
 
     // Вертикальные линии
-    for (let x = 0; x <= this.gridWidth; x++) {
-      const px = x * this.gridSize;
-      graphics.lineBetween(px, 0, px, this.gridHeight * this.gridSize);
+    for (let x = 0; x <= FIELD_WIDTH; x++) {
+      const px = x * GRID_SIZE;
+      graphics.lineBetween(px, 0, px, FIELD_HEIGHT * GRID_SIZE);
     }
 
     // Горизонтальные линии
-    for (let y = 0; y <= this.gridHeight; y++) {
-      const py = y * this.gridSize;
-      graphics.lineBetween(0, py, this.gridWidth * this.gridSize, py);
+    for (let y = 0; y <= FIELD_HEIGHT; y++) {
+      const py = y * GRID_SIZE;
+      graphics.lineBetween(0, py, FIELD_WIDTH * GRID_SIZE, py);
     }
   }
 
@@ -86,9 +96,10 @@ export class MainScene extends Phaser.Scene {
     let dirY = 0;
 
     // Создаём мячик один раз
-    const startX = (startCol + 0.5) * this.gridSize;
-    const startY = (startRow + 0.5) * this.gridSize;
+    const startX = (startCol + 0.5) * GRID_SIZE;
+    const startY = (startRow + 0.5) * GRID_SIZE;
     const ball = this.add.circle(startX, startY, 12, 0xff5500);
+    this.balls.push(ball);
     ball.setDepth(10);
 
     this.tweens.add({
@@ -104,15 +115,15 @@ export class MainScene extends Phaser.Scene {
       const nextRow = row + dirY;
 
       if (
-        nextCol < 0 || nextCol >= this.gridWidth ||
-        nextRow < 0 || nextRow >= this.gridHeight
+        nextCol < 0 || nextCol >= FIELD_WIDTH ||
+        nextRow < 0 || nextRow >= FIELD_HEIGHT
       ) {
         ball.destroy();
         return;
       }
 
-      const toX = (nextCol + 0.5) * this.gridSize;
-      const toY = (nextRow + 0.5) * this.gridSize;
+      const toX = (nextCol + 0.5) * GRID_SIZE;
+      const toY = (nextRow + 0.5) * GRID_SIZE;
 
       this.tweens.add({
         targets: ball,
@@ -128,7 +139,11 @@ export class MainScene extends Phaser.Scene {
               scaleY: 1.5,
               duration: 300,
               yoyo: true,
-              onComplete: () => ball.destroy()
+              onComplete: () => {
+                ball.destroy();
+                this.currentLevel++;
+                this.loadLevel(this.currentLevel);
+              }
             });
             // Можно добавить звук или частицы позже
             return;
@@ -150,6 +165,5 @@ export class MainScene extends Phaser.Scene {
 
     moveStep(startCol, startRow);
   }
-
 
 }

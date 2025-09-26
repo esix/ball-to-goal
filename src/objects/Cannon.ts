@@ -1,20 +1,19 @@
 // src/objects/Cannon.ts
 import Phaser from 'phaser';
+import { GRID_SIZE } from "../constants";
 
 export class Cannon extends Phaser.GameObjects.Container {
   public col: number;
   public row: number;
-  private gridSize: number;
 
-  constructor(scene: Phaser.Scene, col: number, row: number, gridSize: number) {
+  constructor(scene: Phaser.Scene, col: number, row: number) {
     // Вычисляем позицию по центру клетки
-    const x = (col + 0.5) * gridSize;
-    const y = (row + 0.5) * gridSize;
+    const x = (col + 0.5) * GRID_SIZE;
+    const y = (row + 0.5) * GRID_SIZE;
 
     super(scene, x, y);
     this.col = col;
     this.row = row;
-    this.gridSize = gridSize;
 
     this.createGraphics();
     this.makeInteractive();
@@ -22,14 +21,14 @@ export class Cannon extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    const size = this.gridSize * 0.6;
+    const size = GRID_SIZE * 0.6;
 
     // Корпус пушки — красный круг или прямоугольник
     const body = this.scene.add.rectangle(0, 0, size, size * 0.8, 0xff4444)
       .setOrigin(0.5);
 
     // Ствол — жёлтый прямоугольник, направлен вправо
-    const barrelLength = this.gridSize * 0.5;
+    const barrelLength = GRID_SIZE * 0.5;
     const barrel = this.scene.add.rectangle(size / 2, 0, barrelLength, size * 0.3, 0xffff00)
       .setOrigin(0, 0.5);
 
@@ -38,7 +37,7 @@ export class Cannon extends Phaser.GameObjects.Container {
 
   private makeInteractive() {
     // Невидимая зона для клика
-    const hitArea = this.scene.add.rectangle(0, 0, this.gridSize, this.gridSize, 0x000000, 0)
+    const hitArea = this.scene.add.rectangle(0, 0, GRID_SIZE, GRID_SIZE, 0x000000, 0)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
