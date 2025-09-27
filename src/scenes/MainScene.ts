@@ -3,13 +3,13 @@ import Phaser from 'phaser';
 import { Pipe, PipeType } from '../objects/Pipe';
 import { Goal } from '../objects/Goal';
 import { Cannon } from "../objects/Cannon";
-import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "../constants";
+import {FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, MAX_STEPS} from "../constants";
 
 interface LevelData {
   cannon: { col: number; row: number };
   goal: { col: number; row: number };
   pipes: Array<{ type: PipeType; col: number; row: number }>;
-  walls: Array<{ col: number; row: number }>; // ← новое!
+  walls: Array<{ col: number; row: number }>;
 }
 
 const LEVELS: LevelData[] = [
@@ -19,7 +19,9 @@ const LEVELS: LevelData[] = [
     pipes: [
       { col: 1, row: 3, type: PipeType.LeftUp },
     ],
-    walls: [],
+    walls: [
+      { col: 5, row: 2 }
+    ],
   },
   {
     cannon: { col: 1, row: 4 },
@@ -28,7 +30,7 @@ const LEVELS: LevelData[] = [
       { col: 0, row: 0, type: PipeType.RightDown },    { col: 3, row: 0, type: PipeType.LeftDown },
       { col: 0, row: 3, type: PipeType.RightUp },      { col: 3, row: 3, type: PipeType.LeftUp },
     ],
-    walls: [],
+    walls: [ { col: 9, row: 4 }],
   }
 ];
 
@@ -39,6 +41,8 @@ export class MainScene extends Phaser.Scene {
   private balls: Phaser.GameObjects.Arc[] = [];
   private goal!: Goal;
   private currentLevel: number;
+  private wallSet: Set<string> = new Set(); // "col,row"
+  private wallsGroup: Phaser.GameObjects.Group | undefined;
 
   constructor() {
     super('MainScene');
@@ -48,13 +52,21 @@ export class MainScene extends Phaser.Scene {
   preload(): void {
   }
 
+  private destroyBall = (ball: Phaser.GameObjects.Arc) => {
+    const index = this.balls.indexOf(ball);
+    if (index !== -1) {
+      this.balls.splice(index, 1);
+    }
+    ball.destroy();
+  };
+
   private loadLevel(i: number) {
     this.cannon?.destroy(true);
     this.goal?.destroy();
     this.pipes.forEach(pipe => pipe.destroy(true));
     this.tweens.killTweensOf(this.balls);
-    this.balls.forEach(ball => ball.destroy());
-    this.balls = [];
+    this.balls.forEach(this.destroyBall);
+    this.wallsGroup?.clear(true, true);
 
     const level = LEVELS[i];
     this.cannon = new Cannon(this, level.cannon.col, level.cannon.row);
@@ -62,6 +74,21 @@ export class MainScene extends Phaser.Scene {
     this.pipes = level.pipes.map(p =>
       new Pipe(this, p.col, p.row, p.type)
     );
+
+    this.wallsGroup = this.add.group();
+    level.walls.forEach(wall => {
+      const wallSprite = this.add.rectangle(
+          (wall.col + 0.5) * GRID_SIZE,
+          (wall.row + 0.5) * GRID_SIZE,
+          GRID_SIZE, GRID_SIZE,
+          0x555555 // серый цвет
+      ).setOrigin(0.5).setStrokeStyle(2, 0x000000);
+      this.wallsGroup!.add(wallSprite);
+    });
+    this.wallSet.clear();
+    level.walls.forEach(w => {
+      this.wallSet.add(`${w.col},${w.row}`);
+    });
 
     // Привязываем выстрел
     this.cannon.onFire(() => this.launchBall());
@@ -89,6 +116,10 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private isWall(col: number, row: number): boolean {
+    return this.wallSet.has(`${col},${row}`);
+  }
+
   private launchBall() {
     const startCol = this.cannon.col;
     const startRow = this.cannon.row;
@@ -110,7 +141,15 @@ export class MainScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
+    let steps = 0;
+
     const moveStep = (col: number, row: number) => {
+      steps++;
+      if (steps > MAX_STEPS) {
+        this.destroyBall(ball);
+        return;
+      }
+
       const nextCol = col + dirX;
       const nextRow = row + dirY;
 
@@ -118,7 +157,42 @@ export class MainScene extends Phaser.Scene {
         nextCol < 0 || nextCol >= FIELD_WIDTH ||
         nextRow < 0 || nextRow >= FIELD_HEIGHT
       ) {
-        ball.destroy();
+        this.destroyBall(ball);
+        return;
+      }
+
+      if (this.isWall(nextCol, nextRow)) {
+        // Меняем направление на противоположное
+        dirX = -dirX;
+        dirY = -dirY;
+
+        // Теперь летим в ОБРАТНУЮ клетку (откуда прилетели)
+        const backCol = col + dirX; // теперь dirX уже изменён!
+        const backRow = row + dirY;
+
+        // Проверим, не вылетим ли за поле назад?
+        if (
+            backCol < 0 || backCol >= FIELD_WIDTH ||
+            backRow < 0 || backRow >= FIELD_HEIGHT
+        ) {
+          this.destroyBall(ball);
+          return;
+        }
+
+        const toX = (backCol + 0.5) * GRID_SIZE;
+        const toY = (backRow + 0.5) * GRID_SIZE;
+
+        this.tweens.add({
+          targets: ball,
+          x: toX,
+          y: toY,
+          duration: 300,
+          ease: 'Linear',
+          onComplete: () => {
+            // После отскока — продолжаем из новой позиции
+            moveStep(backCol, backRow);
+          }
+        });
         return;
       }
 
