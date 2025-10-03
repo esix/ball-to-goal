@@ -1,13 +1,6 @@
 // src/objects/Pipe.ts
 import Phaser from 'phaser';
-import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "../constants";
-
-export enum PipeType {
-  RightDown = 'RightDown',
-  LeftDown = 'LeftDown',
-  RightUp = 'RightUp',
-  LeftUp = 'LeftUp'
-}
+import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, PipeType } from "../constants";
 
 let id: number = 0;
 
@@ -123,44 +116,6 @@ export class Pipe extends Phaser.GameObjects.Container {
     // Перемещаем в центр клетки
     this.x = (col + 0.5) * GRID_SIZE;
     this.y = (row + 0.5) * GRID_SIZE;
-  }
-
-  public getNewDirection(dirX: number, dirY: number): { dirX: number; dirY: number } {
-    let result = {dirX, dirY};
-
-    const isFromUp = (dirX === 0 && dirY === 1);                        // пришел СВЕРХУ (↓)
-    const isFromRight = (dirX === -1 && dirY === 0);                    // пришел СПРАВА (←)
-    const isFromDown = (dirX === 0 && dirY === -1);                     // пришел СНИЗУ (↑)
-    const isFromLeft = (dirX === 1 && dirY === 0);                      // пришел СЛЕВА (→)
-
-    const GO_UP = {dirX: 0, dirY: -1};                                  // уйдет НАВЕРХ (↑)
-    const GO_RIGHT = {dirX: 1, dirY: 0};                                // уйдет НАПРАВО (→)
-    const GO_DOWN = {dirX: 0, dirY: 1};                                 // уйдет ВНИЗ (↓)
-    const GO_LEFT = {dirX: -1, dirY: 0};                                // уйдет НАЛЕВО (←)
-
-    switch (this.type) {
-      case PipeType.LeftDown: // ↘: ЛЕВО ↔ НИЗ
-        if (isFromLeft) result = GO_DOWN;
-        else if (isFromDown) result = GO_LEFT;
-        break;
-
-      case PipeType.RightDown: // ↙: ПРАВО ↔ НИЗ
-        if (isFromRight) result = GO_DOWN;
-        else if (isFromDown) result = GO_RIGHT;
-        break;
-
-      case PipeType.LeftUp: // ↗: ЛЕВО ↔ ВЕРХ
-        if (isFromLeft) result = GO_UP;
-        else if (isFromUp) result = GO_LEFT;
-        break;
-
-      case PipeType.RightUp: // ↖: ПРАВО ↔ ВЕРХ
-        if (isFromRight) result = GO_UP;
-        else if (isFromUp) result = GO_RIGHT;
-        break;
-    }
-
-    return result;
   }
 
   public destroy(fromScene?: boolean) {

@@ -1,19 +1,13 @@
-// src/objects/Cannon.ts
 import Phaser from 'phaser';
-import { GRID_SIZE } from "../constants";
+import { Direction, GRID_SIZE } from "../constants";
 
 export class Cannon extends Phaser.GameObjects.Container {
-  public col: number;
-  public row: number;
-
-  constructor(scene: Phaser.Scene, col: number, row: number) {
+  constructor(scene: Phaser.Scene, public col: number, public row: number, public direction: Direction) {
     // Вычисляем позицию по центру клетки
     const x = (col + 0.5) * GRID_SIZE;
     const y = (row + 0.5) * GRID_SIZE;
 
     super(scene, x, y);
-    this.col = col;
-    this.row = row;
 
     this.createGraphics();
     this.makeInteractive();
@@ -58,6 +52,16 @@ export class Cannon extends Phaser.GameObjects.Container {
   public onFire(callback: () => void) {
     const hitArea = this.getAt(2) as Phaser.GameObjects.Rectangle; // 3-й элемент — hitArea
     hitArea.removeAllListeners('pointerdown');
-    hitArea.on('pointerdown', callback);
+    hitArea.on('pointerdown', () => {
+      this.scene.tweens.add({
+        targets: this,
+        x: '+=-10',                                                                                   // сдвинуть на -10 от текущего x
+        duration: 50,
+        yoyo: true,
+        ease: 'Sine.easeInOut'
+      });
+
+      callback();
+    });
   }
 }
