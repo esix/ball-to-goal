@@ -1,9 +1,8 @@
-// src/scenes/MainScene.ts
 import Phaser from 'phaser';
 import { Pipe } from '../objects/Pipe';
 import { Goal } from '../objects/Goal';
 import { Cannon } from "../objects/Cannon";
-import { Direction, FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, PipeType, StaticGameObject } from "../constants";
+import { Direction, FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, MAX_STEPS, PipeType, StaticGameObject } from "../constants";
 import { Ball } from "../objects/Ball";
 
 interface LevelData {
@@ -20,7 +19,9 @@ const LEVELS: LevelData[] = [
     pipes: [
       { col: 1, row: 3, type: PipeType.LeftUp },
     ],
-    walls: [],
+    walls: [
+      { col: 5, row: 2 }
+    ],
   },
   {
     cannon: { col: 1, row: 4, direction: Direction.Right },
@@ -29,7 +30,7 @@ const LEVELS: LevelData[] = [
       { col: 0, row: 0, type: PipeType.RightDown },    { col: 3, row: 0, type: PipeType.LeftDown },
       { col: 0, row: 3, type: PipeType.RightUp },      { col: 3, row: 3, type: PipeType.LeftUp },
     ],
-    walls: [],
+    walls: [ { col: 9, row: 4 }],
   }
 ];
 
@@ -37,10 +38,11 @@ const LEVELS: LevelData[] = [
 export class MainScene extends Phaser.Scene {
   private cannon!: Cannon;
   private pipes: Pipe[] = []; // будем хранить все трубки
-  // private balls: Phaser.GameObjects.Arc[] = [];
   private balls: Ball[] = [];
   private goal!: Goal;
   private currentLevel: number;
+  private wallSet: Set<string> = new Set(); // "col,row"
+  private wallsGroup: Phaser.GameObjects.Group | undefined;
 
   constructor() {
     super('MainScene');
@@ -55,7 +57,7 @@ export class MainScene extends Phaser.Scene {
     this.goal?.destroy();
     this.pipes.forEach(pipe => pipe.destroy(true));
     this.balls.forEach(ball => ball.destroy());
-    this.balls = [];
+    this.wallsGroup?.clear(true, true);
 
     const level = LEVELS[i];
     this.cannon = new Cannon(this, level.cannon.col, level.cannon.row, level.cannon.direction);
@@ -63,6 +65,21 @@ export class MainScene extends Phaser.Scene {
     this.pipes = level.pipes.map(p =>
       new Pipe(this, p.col, p.row, p.type)
     );
+
+    this.wallsGroup = this.add.group();
+    level.walls.forEach(wall => {
+      const wallSprite = this.add.rectangle(
+          (wall.col + 0.5) * GRID_SIZE,
+          (wall.row + 0.5) * GRID_SIZE,
+          GRID_SIZE, GRID_SIZE,
+          0x555555 // серый цвет
+      ).setOrigin(0.5).setStrokeStyle(2, 0x000000);
+      this.wallsGroup!.add(wallSprite);
+    });
+    this.wallSet.clear();
+    level.walls.forEach(w => {
+      this.wallSet.add(`${w.col},${w.row}`);
+    });
 
     // Привязываем выстрел
     this.cannon.onFire(() => this.launchBall());
@@ -86,6 +103,10 @@ export class MainScene extends Phaser.Scene {
       const py = y * GRID_SIZE;
       graphics.lineBetween(0, py, FIELD_WIDTH * GRID_SIZE, py);
     }
+  }
+
+  private isWall(col: number, row: number): boolean {
+    return this.wallSet.has(`${col},${row}`);
   }
 
   private getGO = (col: number, row: number) => {
