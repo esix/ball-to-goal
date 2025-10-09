@@ -1,6 +1,5 @@
-// src/objects/Goal.ts
 import Phaser from 'phaser';
-import { GRID_SIZE } from "../constants";
+import { GRID_SIZE } from "../utils";
 
 export class Goal {
   public col: number;

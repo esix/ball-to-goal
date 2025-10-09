@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Pipe } from '../objects/Pipe';
 import { Goal } from '../objects/Goal';
 import { Cannon } from "../objects/Cannon";
-import { Direction, FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, MAX_STEPS, PipeType, StaticGameObject } from "../constants";
+import { Direction, FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, MAX_STEPS, PipeType, StaticGameObject } from "../utils";
 import { Ball } from "../objects/Ball";
 
 interface LevelData {
@@ -13,24 +13,24 @@ interface LevelData {
 }
 
 const LEVELS: LevelData[] = [
-  {
-    cannon: { col: 1, row: 4, direction: Direction.Right },
-    goal: { col: 6, row: 1 },
-    pipes: [
-      { col: 1, row: 3, type: PipeType.LeftUp },
-    ],
-    walls: [
-      { col: 5, row: 2 }
-    ],
-  },
+  // {
+  //   cannon: { col: 1, row: 4, direction: Direction.Right },
+  //   goal: { col: 6, row: 1 },
+  //   pipes: [
+  //     { col: 1, row: 3, type: PipeType.LeftUp },
+  //   ],
+  //   walls: [
+  //     { col: 5, row: 2 }
+  //   ],
+  // },
   {
     cannon: { col: 1, row: 4, direction: Direction.Right },
     goal: { col: 9, row: 3 },
     pipes: [
-      { col: 0, row: 0, type: PipeType.RightDown },    { col: 3, row: 0, type: PipeType.LeftDown },
-      { col: 0, row: 3, type: PipeType.RightUp },      { col: 3, row: 3, type: PipeType.LeftUp },
+      { col: 3, row: 0, type: PipeType.RightDown },    { col: 5, row: 0, type: PipeType.LeftDown },
+      { col: 3, row: 2, type: PipeType.RightUp },      { col: 5, row: 4, type: PipeType.LeftUp },
     ],
-    walls: [ { col: 9, row: 4 }],
+    walls: [ { col: 9, row: 4 }, { col: 9, row: 2 }],
   }
 ];
 
@@ -110,7 +110,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private getGO = (col: number, row: number) => {
-    if (col < 0 || col >= FIELD_WIDTH - 1 || row < 0 || row >= FIELD_HEIGHT) {
+    if (col < 0 || col >= FIELD_WIDTH || row < 0 || row >= FIELD_HEIGHT) {
       return null;
     }
     const pipeHere = this.pipes.find(p => p.col === col && p.row === row);
@@ -120,6 +120,13 @@ export class MainScene extends Phaser.Scene {
 
     if (this.goal.isAt(col, row)) {
       return StaticGameObject.Goal;
+    }
+
+    if (this.isWall(col, row)) {
+      return StaticGameObject.Wall;
+    }
+    if (col === this.cannon.col && row === this.cannon.row) {
+      return StaticGameObject.Cannon;
     }
 
     return StaticGameObject.Empty;

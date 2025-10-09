@@ -1,5 +1,15 @@
 import Phaser from 'phaser';
-import { BALL_SPEED, Direction, GameObject, GRID_SIZE, PipeType, StaticGameObject } from "../constants";
+import {
+  BALL_SPEED,
+  Direction,
+  GameObject, getCellPxCenter,
+  getOppositeDirection,
+  getPipedDirection,
+  getPipeDrawing,
+  GRID_SIZE,
+  isPipe,
+  StaticGameObject
+} from "../utils";
 
 function getVelocity(d: Direction): {dirX: number, dirY: number} {
   if (d === Direction.Right) return {dirX: 1, dirY: 0};
@@ -63,6 +73,18 @@ export class Ball extends Phaser.GameObjects.Container {
 
   private async moveToNextBorder(): Promise<{ col: number, row: number}> {
     const {dirX, dirY} = getVelocity(this.direction);
+    const go = this.getGO(this.col, this.row);                                                      // GameObject in current cell
+
+    if (isPipe(go)) {
+      // current cell is PIPE, and we are continuing moving through that pipe
+      // So we take params like if we were moving to the pipe from opposite
+      // but negate angles
+      const {x, y} = getCellPxCenter(this.col, this.row);
+      const {cx, cy, a1, a2} = getPipeDrawing(go, getOppositeDirection(this.direction));
+      await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, (a1 + a2) / 2, a1);
+      return {col: this.col + dirX, row: this.row + dirY};
+    }
+
     await this.moveToRealCoords(
       (this.col + dirX / 2 + 0.5) * GRID_SIZE,                                                      // To next border of cell
       (this.row + dirY / 2 + 0.5) * GRID_SIZE)
@@ -76,17 +98,19 @@ export class Ball extends Phaser.GameObjects.Container {
       (row + 0.5) * GRID_SIZE)
   }
 
-  private async arcAnimation(centerX: number, centerY: number, radius: number,startAngle: number, endAngle: number) {
+  private async arcAnimation(centerX: number, centerY: number, radius: number, startAngle: number, endAngle: number) {
     const startX = centerX + Math.cos(startAngle) * radius;
     const startY = centerY + Math.sin(startAngle) * radius;
     this.setPosition(startX, startY);
+    const arcLen = Math.abs(startAngle - endAngle) * radius;
+    const SPEED = Math.round(BALL_SPEED * arcLen / GRID_SIZE);
 
     const fakeTarget = { progress: 0 };
 
     await this.setTween({
       targets: fakeTarget,
       progress: 1,
-      duration: BALL_SPEED,
+      duration: SPEED,
       onUpdate: (tween: any) => {
         const progress = tween.progress; // 0 → 1
         const angle = startAngle * (1 - progress) + endAngle * progress;
@@ -102,26 +126,24 @@ export class Ball extends Phaser.GameObjects.Container {
       const {col, row} = await this.moveToNextBorder();
       const go = this.getGO(col, row);
 
-      if (go === null) {
+      if (go === null || go === StaticGameObject.Cannon) {                                          // Out of screen
         this.onCompeted(this, false);
         return;
       }
-      if (go === PipeType.LeftDown || go === PipeType.RightDown || go === PipeType.LeftUp || go === PipeType.RightUp) {
-        const newDirection = this.getPipedDirection(go, this.direction);
-        if (newDirection === null) {                                                              // Into the edge of pipe
+      if (isPipe(go)) {
+        const newDirection = getPipedDirection(go, this.direction);
+        if (newDirection === null) {                                                                // Into the edge of pipe
           this.onCompeted(this, false);
           return;
         }
-        // await this.moveToCenter(col, row);
-        await this.arcAnimation((col + 0) * GRID_SIZE, (row + 0) * GRID_SIZE, GRID_SIZE / 2, Math.PI / 2, 0);
+        // Moving to center of pipe
+        const {x, y} = getCellPxCenter(col, row);
+        const {cx, cy, a1, a2} = getPipeDrawing(go, this.direction);
+        await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
 
         this.col = col;
         this.row = row;
         this.direction = newDirection;
-        const velocity = getVelocity(newDirection);
-        this.col += velocity.dirX;
-        this.row += velocity.dirY;
-        await this.moveToCenter(this.col, this.row);
 
         this._moveStep();
         return;
@@ -130,6 +152,29 @@ export class Ball extends Phaser.GameObjects.Container {
         await this.moveToCenter(col, row);
         await this.winAnimation();
         this.onCompeted(this, true);
+        return;
+      }
+      if (go === StaticGameObject.Wall) {
+        const currentGo = this.getGO(this.col, this.row);
+        if (isPipe(currentGo)) {
+          const newDirection = getPipedDirection(currentGo, getOppositeDirection(this.direction));
+          if (newDirection === null) {
+            this.onCompeted(this, false);
+            return
+          }
+          this.direction = newDirection;
+
+          // Moving to center of pipe
+          const {x, y} = getCellPxCenter(this.col, this.row);
+          const {cx, cy, a1, a2} = getPipeDrawing(currentGo, this.direction);
+          await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
+
+        } else {
+          this.direction = getOppositeDirection(this.direction);
+          await this.moveToCenter(this.col, this.row);
+        }
+
+        this._moveStep();
         return;
       }
       // EMPTY
@@ -142,34 +187,6 @@ export class Ball extends Phaser.GameObjects.Container {
     }
   };
 
-  public getPipedDirection(pipeType: PipeType, direction: Direction): Direction | null {
-    switch (pipeType) {
-      case PipeType.LeftDown:                                                                       // → ╮    ← ╮
-        if (direction === Direction.Right) return Direction.Down;                                   //   ↓      ↑
-        else if (direction === Direction.Up) return Direction.Left;
-        break;
-
-      case PipeType.RightDown:                                                                      // ╭ ←    ╭ →
-        if (direction === Direction.Left) return Direction.Down;                                    // ↓      ↑
-        else if (direction === Direction.Up) return Direction.Right;
-        break;
-
-      case PipeType.LeftUp:                                                                         //   ↑      ↓
-        if (direction === Direction.Right) return Direction.Up;                                     // → ╯    ← ╯
-        else if (direction === Direction.Down) return Direction.Left;
-        break;
-
-      case PipeType.RightUp:                                                                        // ↑      ↓
-        if (direction === Direction.Left) return Direction.Up;                                      // ╰ ←    ╰ →
-        else if (direction === Direction.Down) return Direction.Right;
-        break;
-
-      default:
-        throw new Error(`Unknown type '${this.type}'`);
-    }
-
-    return null;
-  }
 
   public destroy(fromScene?: boolean) {
     if (this.activeTween) {

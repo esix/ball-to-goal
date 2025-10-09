@@ -1,6 +1,5 @@
-// src/objects/Pipe.ts
 import Phaser from 'phaser';
-import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, PipeType } from "../constants";
+import { FIELD_HEIGHT, FIELD_WIDTH, getCellPxCenter, getPipeDrawing, GRID_SIZE, PipeType } from "../utils";
 
 let id: number = 0;
 
@@ -8,14 +7,10 @@ export class Pipe extends Phaser.GameObjects.Container {
   public col: number;
   public row: number;
   public type: PipeType;
-  private id;
   private hitArea: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene, col: number, row: number, type: PipeType) {
-    // Вычисляем позицию по центру клетки
-    const x = (col + 0.5) * GRID_SIZE;
-    const y = (row + 0.5) * GRID_SIZE;
-
+    const {x, y} = getCellPxCenter(col, row);
     super(scene, x, y);
     this.col = col;
     this.row = row;
@@ -33,7 +28,6 @@ export class Pipe extends Phaser.GameObjects.Container {
     this.scene.input.on('pointerup', this.onPointerUp);
 
     scene.add.existing(this);
-    this.id = id++;
   }
 
   private createGraphics() {
@@ -45,29 +39,8 @@ export class Pipe extends Phaser.GameObjects.Container {
     const color = 0x00aaff;
 
     graphics.lineStyle(lineWidth, color, 1);
-
-    switch (this.type) {
-      case PipeType.LeftDown: // ↘: соединяет ЛЕВО и НИЗ
-        // Центр дуги — в НИЖНЕМ ЛЕВОМ углу клетки
-        graphics.arc(-half, half, R, -Math.PI / 2, 0);
-        break;
-
-      case PipeType.RightDown: // ↙: соединяет ПРАВО и НИЗ
-        // Центр — в НИЖНЕМ ПРАВОМ углу
-        graphics.arc(half, half, R, Math.PI * 1, Math.PI * 1.5);
-        break;
-
-      case PipeType.LeftUp: // ↗: соединяет ЛЕВО и ВЕРХ
-        // Центр — в ВЕРХНЕМ ЛЕВОМ углу
-        graphics.arc(-half, -half, R, Math.PI / 2, 0, true);
-        break;
-
-      case PipeType.RightUp: // ↖: соединяет ПРАВО и ВЕРХ
-        // Центр — в ВЕРХНЕМ ПРАВОМ углу
-        graphics.arc(half, -half, R, -3 * Math.PI / 2, -Math.PI);
-        break;
-    }
-
+    const {cx, cy, a1, a2} = getPipeDrawing(this.type);
+    graphics.arc(cx, cy, R, a1, a2);
     graphics.strokePath();
     this.add(graphics);
   }

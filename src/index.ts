@@ -1,6 +1,6 @@
-import 'phaser';
-import { MainScene } from './scenes/MainScene';
-import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "./constants";
+import "phaser";
+import { MainScene } from "./scenes/MainScene";
+import { FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE } from "./utils";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

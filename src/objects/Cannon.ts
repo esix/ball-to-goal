@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Direction, GRID_SIZE } from "../constants";
+import { Direction, GRID_SIZE } from "../utils";
 
 export class Cannon extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, public col: number, public row: number, public direction: Direction) {
@@ -50,12 +50,12 @@ export class Cannon extends Phaser.GameObjects.Container {
 
   // Метод для установки обработчика выстрела извне
   public onFire(callback: () => void) {
-    const hitArea = this.getAt(2) as Phaser.GameObjects.Rectangle; // 3-й элемент — hitArea
+    const hitArea = this.getAt(2) as Phaser.GameObjects.Rectangle;                                  // 3-й элемент — hitArea
     hitArea.removeAllListeners('pointerdown');
     hitArea.on('pointerdown', () => {
       this.scene.tweens.add({
         targets: this,
-        x: '+=-10',                                                                                   // сдвинуть на -10 от текущего x
+        x: '+=-10',                                                                                 // сдвинуть на -10 от текущего x
         duration: 50,
         yoyo: true,
         ease: 'Sine.easeInOut'
