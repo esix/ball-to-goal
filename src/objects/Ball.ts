@@ -5,28 +5,25 @@ import {
   GameObject, getCellPxCenter,
   getOppositeDirection,
   getPipedDirection,
-  getPipeDrawing,
+  getPipeDrawing, getVelocity,
   GRID_SIZE,
   isPipe,
   StaticGameObject
 } from "../utils";
 
-function getVelocity(d: Direction): {dirX: number, dirY: number} {
-  if (d === Direction.Right) return {dirX: 1, dirY: 0};
-  if (d === Direction.Left) return {dirX: -1, dirY: 0};
-  if (d === Direction.Up) return {dirX: 0, dirY: -1};
-  if (d === Direction.Down) return {dirX: 0, dirY: 1};
-  throw new Error('Unknown direction');
-}
-
-
 type FnGetGO = (col: number, row: number) => GameObject;
 type FnDead = (ball: Ball, win: boolean) => unknown;
+
 
 export class Ball extends Phaser.GameObjects.Container {
   private activeTween: Phaser.Tweens.Tween | null = null;
 
-  constructor(scene: Phaser.Scene, public col: number, public row: number, public direction: Direction, private getGO: FnGetGO, private onCompeted: FnDead) {
+  constructor(scene: Phaser.Scene,
+              public col: number,
+              public row: number,
+              public direction: Direction,
+              private getGO: FnGetGO,
+              private onCompeted: FnDead) {
     const x = (col + 0.5) * GRID_SIZE;                                                              // позиция по центру клетки
     const y = (row + 0.5) * GRID_SIZE;
     super(scene, x, y);
@@ -34,7 +31,7 @@ export class Ball extends Phaser.GameObjects.Container {
     this.createGraphics();
     scene.add.existing(this);
 
-    this._moveStep();
+    this.run();
   }
 
   private createGraphics() {
@@ -94,7 +91,7 @@ export class Ball extends Phaser.GameObjects.Container {
   // move ball to the center of the cell
   private moveToCenter(col: number, row: number): Promise<void> {
     return this.moveToRealCoords(
-      (col + 0.5) * GRID_SIZE,                                                      // To next border of cell
+      (col + 0.5) * GRID_SIZE,                                                                      // To next border of cell
       (row + 0.5) * GRID_SIZE)
   }
 
@@ -121,70 +118,77 @@ export class Ball extends Phaser.GameObjects.Container {
     });
   }
 
-  private async _moveStep() {
+  private async run() {
     try {
-      const {col, row} = await this.moveToNextBorder();
-      const go = this.getGO(col, row);
+      while (true) {
+        if (!(await this.moveStep())) {
+          break;
+        }
+      }
+    } catch (err) {
+      // The animation was cancelled - next level
+    }
+  }
 
-      if (go === null || go === StaticGameObject.Cannon) {                                          // Out of screen
+  private async moveStep(): Promise<boolean> {
+    const {col, row} = await this.moveToNextBorder();
+    const go = this.getGO(col, row);
+
+    if (go === null || go === StaticGameObject.Cannon) {                                          // Out of screen
+      this.onCompeted(this, false);
+      return false;
+    }
+    if (isPipe(go)) {
+      const newDirection = getPipedDirection(go, this.direction);
+      if (newDirection === null) {                                                                // Into the edge of pipe
         this.onCompeted(this, false);
-        return;
+        return false;
       }
-      if (isPipe(go)) {
-        const newDirection = getPipedDirection(go, this.direction);
-        if (newDirection === null) {                                                                // Into the edge of pipe
-          this.onCompeted(this, false);
-          return;
-        }
-        // Moving to center of pipe
-        const {x, y} = getCellPxCenter(col, row);
-        const {cx, cy, a1, a2} = getPipeDrawing(go, this.direction);
-        await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
+      // Moving to center of pipe
+      const {x, y} = getCellPxCenter(col, row);
+      const {cx, cy, a1, a2} = getPipeDrawing(go, this.direction);
+      await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
 
-        this.col = col;
-        this.row = row;
-        this.direction = newDirection;
-
-        this._moveStep();
-        return;
-      }
-      if (go === StaticGameObject.Goal) {
-        await this.moveToCenter(col, row);
-        await this.winAnimation();
-        this.onCompeted(this, true);
-        return;
-      }
-      if (go === StaticGameObject.Wall) {
-        const currentGo = this.getGO(this.col, this.row);
-        if (isPipe(currentGo)) {
-          const newDirection = getPipedDirection(currentGo, getOppositeDirection(this.direction));
-          if (newDirection === null) {
-            this.onCompeted(this, false);
-            return
-          }
-          this.direction = newDirection;
-
-          // Moving to center of pipe
-          const {x, y} = getCellPxCenter(this.col, this.row);
-          const {cx, cy, a1, a2} = getPipeDrawing(currentGo, this.direction);
-          await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
-
-        } else {
-          this.direction = getOppositeDirection(this.direction);
-          await this.moveToCenter(this.col, this.row);
-        }
-
-        this._moveStep();
-        return;
-      }
-      // EMPTY
-      await this.moveToCenter(col, row);
       this.col = col;
       this.row = row;
-      this._moveStep();
-    } catch (err) {
-      // cancelled!
+      this.direction = newDirection;
+
+      return true;
     }
+    if (go === StaticGameObject.Goal) {
+      await this.moveToCenter(col, row);
+      await this.winAnimation();
+      this.onCompeted(this, true);
+      return false;
+    }
+
+    if (go === StaticGameObject.Wall) {
+      const currentGo = this.getGO(this.col, this.row);
+      if (isPipe(currentGo)) {
+        const newDirection = getPipedDirection(currentGo, getOppositeDirection(this.direction));
+        if (newDirection === null) {
+          this.onCompeted(this, false);
+          return false
+        }
+        this.direction = newDirection;
+
+        // Moving to center of pipe
+        const {x, y} = getCellPxCenter(this.col, this.row);
+        const {cx, cy, a1, a2} = getPipeDrawing(currentGo, this.direction);
+        await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
+
+      } else {
+        this.direction = getOppositeDirection(this.direction);
+        await this.moveToCenter(this.col, this.row);
+      }
+
+      return true;
+    }
+    // EMPTY
+    await this.moveToCenter(col, row);
+    this.col = col;
+    this.row = row;
+    return true;
   };
 
 

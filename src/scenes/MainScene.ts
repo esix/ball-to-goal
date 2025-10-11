@@ -2,7 +2,16 @@ import Phaser from 'phaser';
 import { Pipe } from '../objects/Pipe';
 import { Goal } from '../objects/Goal';
 import { Cannon } from "../objects/Cannon";
-import { Direction, FIELD_HEIGHT, FIELD_WIDTH, GRID_SIZE, MAX_STEPS, PipeType, StaticGameObject } from "../utils";
+import {
+  Direction,
+  FIELD_HEIGHT,
+  FIELD_WIDTH,
+  getCellPxCenter,
+  GRID_SIZE,
+  MAX_STEPS,
+  PipeType,
+  StaticGameObject
+} from "../utils";
 import { Ball } from "../objects/Ball";
 
 interface LevelData {
@@ -50,6 +59,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.image('stone', 'assets/stone.png');
+    this.load.atlas('garden', 'assets/garden.png', 'assets/garden.json');
   }
 
   private loadLevel(i: number) {
@@ -58,6 +69,17 @@ export class MainScene extends Phaser.Scene {
     this.pipes.forEach(pipe => pipe.destroy(true));
     this.balls.forEach(ball => ball.destroy());
     this.wallsGroup?.clear(true, true);
+
+
+    for (let row = 0; row < FIELD_HEIGHT; row++) {
+      for (let col = 0; col < FIELD_WIDTH; col++) {
+        const {x, y} = getCellPxCenter(col, row);
+        this.add.image(x, y, 'garden', 'grass' + (row % 3) + (col % 5))
+            .setDisplaySize(GRID_SIZE, GRID_SIZE)
+            .setOrigin(0.5)
+            .setAlpha(0.8);
+      }
+    }
 
     const level = LEVELS[i];
     this.cannon = new Cannon(this, level.cannon.col, level.cannon.row, level.cannon.direction);
@@ -68,18 +90,21 @@ export class MainScene extends Phaser.Scene {
 
     this.wallsGroup = this.add.group();
     level.walls.forEach(wall => {
-      const wallSprite = this.add.rectangle(
-          (wall.col + 0.5) * GRID_SIZE,
-          (wall.row + 0.5) * GRID_SIZE,
-          GRID_SIZE, GRID_SIZE,
-          0x555555 // серый цвет
-      ).setOrigin(0.5).setStrokeStyle(2, 0x000000);
+      const {x, y} = getCellPxCenter(wall.col, wall.row);
+      // const wallSprite = this.add.rectangle(
+      //     x, y, GRID_SIZE, GRID_SIZE,
+      //     0x555555 // серый цвет
+      // ).setOrigin(0.5).setStrokeStyle(2, 0x000000);
+      const wallSprite = this.add.image(x, y, 'stone')
+          .setDisplaySize(GRID_SIZE * 1.2, GRID_SIZE * 1.2)
+          .setOrigin(0.5);
       this.wallsGroup!.add(wallSprite);
     });
     this.wallSet.clear();
     level.walls.forEach(w => {
       this.wallSet.add(`${w.col},${w.row}`);
     });
+
 
     // Привязываем выстрел
     this.cannon.onFire(() => this.launchBall());
@@ -113,7 +138,7 @@ export class MainScene extends Phaser.Scene {
     if (col < 0 || col >= FIELD_WIDTH || row < 0 || row >= FIELD_HEIGHT) {
       return null;
     }
-    const pipeHere = this.pipes.find(p => p.col === col && p.row === row);
+    const pipeHere = this.pipes.find(p => p.col === col && p.row === row && !p.isDragging);
     if (pipeHere) {
       return pipeHere.type;
     }
@@ -152,73 +177,5 @@ export class MainScene extends Phaser.Scene {
   private launchBall() {
     const ball = new Ball(this, this.cannon.col, this.cannon.row, this.cannon.direction, this.getGO, this.onBallCompleted);
     this.balls.push(ball);
-    //
-    // const startCol = this.cannon.col;
-    // const startRow = this.cannon.row;
-    // let dirX = 1;
-    // let dirY = 0;
-    //
-    // // Создаём мячик один раз
-    // const startX = (startCol + 0.5) * GRID_SIZE;
-    // const startY = (startRow + 0.5) * GRID_SIZE;
-    // const ball = this.add.circle(startX, startY, 12, 0xff5500);
-    // this.balls.push(ball);
-    // ball.setDepth(10);
-    //
-
-    //
-    // const moveStep = (col: number, row: number) => {
-    //   const nextCol = col + dirX;
-    //   const nextRow = row + dirY;
-    //
-    //   if (nextCol < 0 || nextCol >= FIELD_WIDTH || nextRow < 0 || nextRow >= FIELD_HEIGHT) {
-    //     debugger;
-    //     ball.destroy();
-    //     return;
-    //   }
-    //
-    //   const toX = (nextCol + 0.5) * GRID_SIZE;
-    //   const toY = (nextRow + 0.5) * GRID_SIZE;
-    //
-    //   this.tweens.add({
-    //     targets: ball,
-    //     x: toX,
-    //     y: toY,
-    //     duration: 300,
-    //     ease: 'Linear',
-    //     onComplete: () => {
-    //       if (this.goal.isAt(nextCol, nextRow)) {
-    //         this.tweens.add({                                                                       // Ура! Попал в ворота
-    //           targets: ball,
-    //           scaleX: 1.5,
-    //           scaleY: 1.5,
-    //           duration: 300,
-    //           yoyo: true,
-    //           onComplete: () => {
-    //             ball.destroy();
-    //             this.currentLevel++;
-    //             this.loadLevel(this.currentLevel);
-    //           }
-    //         });
-    //         // Можно добавить звук или частицы позже
-    //         return;
-    //       }
-    //
-    //       // Проверка трубки в клетке (nextCol, nextRow)
-    //       const pipeHere = this.pipes.find(p => p.col === nextCol && p.row === nextRow);
-    //
-    //       if (pipeHere) {
-    //         const newDir = pipeHere.getNewDirection(dirX, dirY);
-    //         dirX = newDir.dirX;
-    //         dirY = newDir.dirY;
-    //       }
-    //
-    //       moveStep(nextCol, nextRow);
-    //     }
-    //   });
-    // };
-    //
-    // moveStep(startCol, startRow);
   }
-
 }

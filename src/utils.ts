@@ -39,6 +39,19 @@ export function getCellPxCenter(col: number, row: number): {x: number, y: number
   return {x, y};
 }
 
+/**
+ * Return velocity of the ball - dirX, dirY = 0, 1 or -1 based on direction
+ *
+ * @param d direction of ball
+ */
+export function getVelocity(d: Direction): {dirX: 0 | 1 | -1, dirY: 0 | 1 | -1} {
+  if (d === Direction.Right) return {dirX: 1, dirY: 0};
+  if (d === Direction.Left) return {dirX: -1, dirY: 0};
+  if (d === Direction.Up) return {dirX: 0, dirY: -1};
+  if (d === Direction.Down) return {dirX: 0, dirY: 1};
+  throw new Error('Unknown direction');
+}
+
 export function isPipe(go: GameObject): go is PipeType {
   return go === PipeType.RightDown || go === PipeType.LeftDown || go === PipeType.RightUp || go === PipeType.LeftUp;
 }

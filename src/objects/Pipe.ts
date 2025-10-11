@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { FIELD_HEIGHT, FIELD_WIDTH, getCellPxCenter, getPipeDrawing, GRID_SIZE, PipeType } from "../utils";
 
-let id: number = 0;
-
 export class Pipe extends Phaser.GameObjects.Container {
   public col: number;
   public row: number;
+  /**
+   * Is the pipe  moving
+   */
+  public isDragging: boolean = false;
   public type: PipeType;
   private hitArea: Phaser.GameObjects.Rectangle;
 
@@ -45,19 +47,20 @@ export class Pipe extends Phaser.GameObjects.Container {
     this.add(graphics);
   }
 
-  private isDragging: boolean = false;
   private dragOffset = { x: 0, y: 0 };
 
   private onPointerDown = (pointer: Phaser.Input.Pointer) => {
     this.dragOffset.x = pointer.x - this.x;
     this.dragOffset.y = pointer.y - this.y;
     this.isDragging = true;
+    this.setAlpha(0.6);
+    this.setY(this.y - 10);
   };
 
   private onPointerMove = (pointer: Phaser.Input.Pointer) => {
     if (this.isDragging) {
       this.x = pointer.x - this.dragOffset.x;
-      this.y = pointer.y - this.dragOffset.y;
+      this.y = pointer.y - this.dragOffset.y - 10;
       if (!pointer.isDown) {
         this.isDragging = false;
         this.snapToGrid();
@@ -68,6 +71,7 @@ export class Pipe extends Phaser.GameObjects.Container {
   private onPointerUp = () => {
     this.isDragging = false;
     this.snapToGrid();
+    this.setAlpha(1);
   };
 
   private snapToGrid() {

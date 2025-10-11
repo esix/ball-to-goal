@@ -27,10 +27,9 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './public/index.html',
     }),
-    // Если позже добавишь assets:
-    // new CopyPlugin({
-    //   patterns: [{ from: 'public/assets', to: 'assets' }],
-    // }),
+    new CopyPlugin({
+      patterns: [{ from: 'public/assets', to: 'assets' }],
+    }),
   ],
   devServer: {
     static: './dist',
