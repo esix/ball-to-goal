@@ -1,4 +1,4 @@
-export const GRID_SIZE = 80;
+export const GRID_SIZE = 128;
 export const FIELD_WIDTH = 10;
 export const FIELD_HEIGHT = 8;
 export const MAX_STEPS = 100;
@@ -23,6 +23,13 @@ export enum StaticGameObject {
   Empty = 'Empty',
   Goal = 'Goal',
   Cannon = 'Cannon',
+}
+
+export interface LevelData {
+  cannon: { col: number; row: number; direction: Direction };
+  goal: { col: number; row: number };
+  pipes: Array<{ type: PipeType; col: number; row: number }>;
+  walls: Array<{ col: number; row: number }>;
 }
 
 

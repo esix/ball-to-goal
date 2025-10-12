@@ -7,6 +7,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: GRID_SIZE * FIELD_WIDTH,
   height: GRID_SIZE * FIELD_HEIGHT,
   // backgroundColor: '#4488ff',
+  backgroundColor: "#ffffff",
   scene: [MainScene],
   scale: {
     mode: Phaser.Scale.FIT,

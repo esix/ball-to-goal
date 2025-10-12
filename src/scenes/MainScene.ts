@@ -7,31 +7,25 @@ import {
   FIELD_HEIGHT,
   FIELD_WIDTH,
   getCellPxCenter,
-  GRID_SIZE,
-  MAX_STEPS,
+  GRID_SIZE, LevelData,
   PipeType,
   StaticGameObject
 } from "../utils";
 import { Ball } from "../objects/Ball";
+import Garden from "../objects/Garden";
 
-interface LevelData {
-  cannon: { col: number; row: number; direction: Direction };
-  goal: { col: number; row: number };
-  pipes: Array<{ type: PipeType; col: number; row: number }>;
-  walls: Array<{ col: number; row: number }>;
-}
 
 const LEVELS: LevelData[] = [
-  // {
-  //   cannon: { col: 1, row: 4, direction: Direction.Right },
-  //   goal: { col: 6, row: 1 },
-  //   pipes: [
-  //     { col: 1, row: 3, type: PipeType.LeftUp },
-  //   ],
-  //   walls: [
-  //     { col: 5, row: 2 }
-  //   ],
-  // },
+  {
+    cannon: { col: 1, row: 4, direction: Direction.Right },
+    goal: { col: 6, row: 1 },
+    pipes: [
+      { col: 1, row: 3, type: PipeType.LeftUp },
+    ],
+    walls: [
+      { col: 5, row: 2 }
+    ],
+  },
   {
     cannon: { col: 1, row: 4, direction: Direction.Right },
     goal: { col: 9, row: 3 },
@@ -45,6 +39,7 @@ const LEVELS: LevelData[] = [
 
 
 export class MainScene extends Phaser.Scene {
+  private garden!: Garden;
   private cannon!: Cannon;
   private pipes: Pipe[] = []; // будем хранить все трубки
   private balls: Ball[] = [];
@@ -60,7 +55,15 @@ export class MainScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('stone', 'assets/stone.png');
-    this.load.atlas('garden', 'assets/garden.png', 'assets/garden.json');
+    // this.load.atlas('garden', 'assets/garden.png', 'assets/garden.json');
+    this.load.spritesheet('garden', 'assets/garden.png', {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+    this.load.spritesheet('pipe', 'assets/pipe.png', {
+      frameWidth: 128,
+      frameHeight: 128,
+    });
   }
 
   private loadLevel(i: number) {
@@ -69,19 +72,12 @@ export class MainScene extends Phaser.Scene {
     this.pipes.forEach(pipe => pipe.destroy(true));
     this.balls.forEach(ball => ball.destroy());
     this.wallsGroup?.clear(true, true);
-
-
-    for (let row = 0; row < FIELD_HEIGHT; row++) {
-      for (let col = 0; col < FIELD_WIDTH; col++) {
-        const {x, y} = getCellPxCenter(col, row);
-        this.add.image(x, y, 'garden', 'grass' + (row % 3) + (col % 5))
-            .setDisplaySize(GRID_SIZE, GRID_SIZE)
-            .setOrigin(0.5)
-            .setAlpha(0.8);
-      }
-    }
+    this.garden?.destroy();
 
     const level = LEVELS[i];
+    this.garden = new Garden(this, level);
+    this.drawGrid();
+
     this.cannon = new Cannon(this, level.cannon.col, level.cannon.row, level.cannon.direction);
     this.goal = new Goal(this, level.goal.col, level.goal.row);
     this.pipes = level.pipes.map(p =>
@@ -111,7 +107,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.drawGrid();
     this.loadLevel(this.currentLevel);
   }
 

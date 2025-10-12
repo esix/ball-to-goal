@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { FIELD_HEIGHT, FIELD_WIDTH, getCellPxCenter, getPipeDrawing, GRID_SIZE, PipeType } from "../utils";
+import {FIELD_HEIGHT, FIELD_WIDTH, getCellPxCenter, GRID_SIZE, PipeType} from "../utils";
 
 export class Pipe extends Phaser.GameObjects.Container {
   public col: number;
@@ -33,18 +33,27 @@ export class Pipe extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    const graphics = this.scene.add.graphics();
-    const S = GRID_SIZE;
-    const half = S / 2;
-    const lineWidth = S * 0.5;
-    const R = half; // радиус средней линии
-    const color = 0x00aaff;
+    // const graphics = this.scene.add.graphics();
+    // const S = GRID_SIZE;
+    // const half = S / 2;
+    // const lineWidth = S * 0.5;
+    // const R = half; // радиус средней линии
+    // const color = 0x00aaff;
 
-    graphics.lineStyle(lineWidth, color, 1);
-    const {cx, cy, a1, a2} = getPipeDrawing(this.type);
-    graphics.arc(cx, cy, R, a1, a2);
-    graphics.strokePath();
-    this.add(graphics);
+    // graphics.lineStyle(lineWidth, color, 1);
+    // const {cx, cy, a1, a2} = getPipeDrawing(this.type);
+    // graphics.arc(cx, cy, R, a1, a2);
+    // graphics.strokePath();
+    // this.add(graphics);
+    const pipeSprite = this.scene.add.sprite(0, 0, 'pipe', 0)
+        .setDisplaySize(GRID_SIZE, GRID_SIZE)
+        .setOrigin(0.5);
+
+    if (this.type === PipeType.LeftDown) pipeSprite.setRotation(Math.PI / 2);
+    if (this.type === PipeType.LeftUp) pipeSprite.setRotation(Math.PI);
+    if (this.type === PipeType.RightUp) pipeSprite.setRotation(3 * Math.PI / 2);
+
+    this.add(pipeSprite);
   }
 
   private dragOffset = { x: 0, y: 0 };
@@ -53,7 +62,7 @@ export class Pipe extends Phaser.GameObjects.Container {
     this.dragOffset.x = pointer.x - this.x;
     this.dragOffset.y = pointer.y - this.y;
     this.isDragging = true;
-    this.setAlpha(0.6);
+    this.setAlpha(0.7);
     this.setY(this.y - 10);
   };
 

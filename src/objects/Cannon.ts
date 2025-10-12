@@ -1,14 +1,12 @@
 import Phaser from 'phaser';
-import { Direction, GRID_SIZE } from "../utils";
+import {Direction, getCellPxCenter, GRID_SIZE} from "../utils";
 
 export class Cannon extends Phaser.GameObjects.Container {
-  constructor(scene: Phaser.Scene, public col: number, public row: number, public direction: Direction) {
-    // Вычисляем позицию по центру клетки
-    const x = (col + 0.5) * GRID_SIZE;
-    const y = (row + 0.5) * GRID_SIZE;
-
+  public constructor(scene: Phaser.Scene,
+                     public col: number,
+                     public row: number, public direction: Direction) {
+    const {x, y} = getCellPxCenter(col, row);
     super(scene, x, y);
-
     this.createGraphics();
     this.makeInteractive();
     scene.add.existing(this);
