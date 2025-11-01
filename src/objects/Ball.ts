@@ -35,7 +35,10 @@ export class Ball extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    const circle = this.scene.add.circle(0, 0, 12, 0xff5500)
+    // const circle = this.scene.add.circle(0, 0, 12, 0xff5500);
+    const circle = this.scene.add.sprite(0, 0, 'ball', 0);
+    circle.setDisplaySize(GRID_SIZE / 3, GRID_SIZE / 3);
+    circle.setOrigin(0.5);
     this.add([circle]);
   }
 

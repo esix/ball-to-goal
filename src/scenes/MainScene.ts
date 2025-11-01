@@ -64,6 +64,9 @@ export class MainScene extends Phaser.Scene {
       frameWidth: 128,
       frameHeight: 128,
     });
+    this.load.image('ball', 'assets/bullet4.png');
+    this.load.image('goal', 'assets/goal.png');
+    this.load.image('cannon', 'assets/canon.png');
   }
 
   private loadLevel(i: number) {

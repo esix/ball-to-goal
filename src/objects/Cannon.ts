@@ -13,18 +13,10 @@ export class Cannon extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    const size = GRID_SIZE * 0.6;
-
-    // Корпус пушки — красный круг или прямоугольник
-    const body = this.scene.add.rectangle(0, 0, size, size * 0.8, 0xff4444)
-      .setOrigin(0.5);
-
-    // Ствол — жёлтый прямоугольник, направлен вправо
-    const barrelLength = GRID_SIZE * 0.5;
-    const barrel = this.scene.add.rectangle(size / 2, 0, barrelLength, size * 0.3, 0xffff00)
-      .setOrigin(0, 0.5);
-
-    this.add([body, barrel]);
+    const body = this.scene.add.sprite(0, 0, 'cannon', 0);
+    body.setDisplaySize(GRID_SIZE , GRID_SIZE);
+    body.setOrigin(0.5, 0.6);
+    this.add([body]);
   }
 
   private makeInteractive() {
@@ -42,13 +34,11 @@ export class Cannon extends Phaser.GameObjects.Container {
     hitArea.on('pointerout', () => {
       this.setScale(1);
     });
-
-    // Событие будет обрабатываться в сцене через колбэк
   }
 
   // Метод для установки обработчика выстрела извне
   public onFire(callback: () => void) {
-    const hitArea = this.getAt(2) as Phaser.GameObjects.Rectangle;                                  // 3-й элемент — hitArea
+    const hitArea = this.getAt(1) as Phaser.GameObjects.Rectangle;                                  // 3-й элемент — hitArea
     hitArea.removeAllListeners('pointerdown');
     hitArea.on('pointerdown', () => {
       this.scene.tweens.add({
