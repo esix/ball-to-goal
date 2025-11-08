@@ -4,7 +4,8 @@ import {Direction, getCellPxCenter, GRID_SIZE} from "../utils";
 export class Cannon extends Phaser.GameObjects.Container {
   public constructor(scene: Phaser.Scene,
                      public col: number,
-                     public row: number, public direction: Direction) {
+                     public row: number,
+                     public direction: Direction) {
     const {x, y} = getCellPxCenter(col, row);
     super(scene, x, y);
     this.createGraphics();
@@ -13,14 +14,21 @@ export class Cannon extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    const body = this.scene.add.sprite(0, 0, 'cannon', 0);
-    body.setDisplaySize(GRID_SIZE , GRID_SIZE);
-    body.setOrigin(0.5, 0.6);
+    const body = this.scene.add.sprite(0, 0, 'cannon', 0)
+        //.setDisplaySize(GRID_SIZE, GRID_SIZE)
+        .setOrigin(0.5, 0.6)
+        .setScale(GRID_SIZE / 32, GRID_SIZE / 32)
+        .setBlendMode(Phaser.BlendModes.HARD_LIGHT);
+
+
+    if (this.direction === Direction.Left) {
+      body.setScale(-GRID_SIZE / 32, GRID_SIZE / 32);
+    }
     this.add([body]);
   }
 
   private makeInteractive() {
-    // Невидимая зона для клика
+    // Invisible zone for click
     const hitArea = this.scene.add.rectangle(0, 0, GRID_SIZE, GRID_SIZE, 0x000000, 0)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -28,22 +36,22 @@ export class Cannon extends Phaser.GameObjects.Container {
     this.add(hitArea);
 
     hitArea.on('pointerover', () => {
-      this.setScale(1.1);
+      this.setScale(1.1, 1.1);
     });
 
     hitArea.on('pointerout', () => {
-      this.setScale(1);
+      this.setScale(1, 1);
     });
   }
 
   // Метод для установки обработчика выстрела извне
   public onFire(callback: () => void) {
-    const hitArea = this.getAt(1) as Phaser.GameObjects.Rectangle;                                  // 3-й элемент — hitArea
+    const hitArea = this.getAt(1) as Phaser.GameObjects.Rectangle;                                  // 3-rd element — hitArea
     hitArea.removeAllListeners('pointerdown');
     hitArea.on('pointerdown', () => {
       this.scene.tweens.add({
         targets: this,
-        x: '+=-10',                                                                                 // сдвинуть на -10 от текущего x
+        x: '+=-10%',                                                                                // move by -10%
         duration: 50,
         yoyo: true,
         ease: 'Sine.easeInOut'

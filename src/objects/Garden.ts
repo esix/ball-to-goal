@@ -9,31 +9,53 @@ export default class Garden extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    const getTxtIndex = (y: number, x: number) => y * 16 + x;
-    const grass = getTxtIndex(9, 11);
-    const map: number[][] = Array(FIELD_HEIGHT).fill(0).map(() => Array(FIELD_WIDTH).fill(grass));
-
-    const groundify = (row: number, col: number) => {
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          map[row + i][col + j] = getTxtIndex(9 + i, 14 + j);
-        }
-      }
-    };
-    groundify(this.level.cannon.row, this.level.cannon.col);
-    groundify(this.level.goal.row, this.level.goal.col);
-
+    const getTxtIndex = (y: number, x: number) => y * 15 + x;
+    const grass = getTxtIndex(1, 1);
 
     for (let row = 0; row < FIELD_HEIGHT; row++) {
       for (let col = 0; col < FIELD_WIDTH; col++) {
         const {x, y} = getCellPxCenter(col, row);
 
-        const sprite = this.scene.add.image(x, y, 'garden', map[row][col])
-                                            .setDisplaySize(GRID_SIZE, GRID_SIZE)
-                                            .setOrigin(0.5)
-                                            .setAlpha(0.6);
+        const sprite: Phaser.GameObjects.Image = this.scene.add.image(x, y, 'garden', grass)
+            .setDisplaySize(GRID_SIZE, GRID_SIZE)
+            .setOrigin(0.5)
+            .setAlpha(0.6);
         this.add(sprite);
       }
+    }
+
+    const map: number[][] = Array(FIELD_HEIGHT).fill(0).map(() => Array(FIELD_WIDTH).fill(null));
+
+    const groundify = (row: number, col: number, txtI: number, txtJ: number) => {
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          map[row + i][col + j] = getTxtIndex(txtI + i, txtJ + j);
+        }
+      }
+    };
+    groundify(this.level.cannon.row, this.level.cannon.col, 13, 1);
+    groundify(this.level.goal.row, this.level.goal.col, 10, 6);
+
+    for (let row = 0; row < FIELD_HEIGHT; row++) {
+      for (let col = 0; col < FIELD_WIDTH; col++) {
+        const {x, y} = getCellPxCenter(col, row);
+        const txtIndex = map[row][col];
+        if (txtIndex !== null) {
+          const sprite = this.scene.add.image(x, y, 'garden', map[row][col])
+              .setDisplaySize(GRID_SIZE, GRID_SIZE)
+              .setOrigin(0.5)
+              // .setAlpha(0.6);
+          this.add(sprite);
+        }
+      }
+    }
+
+    for (let wall of this.level.walls) {
+      const {x, y} = getCellPxCenter(wall.col, wall.row);
+      const sprite = this.scene.add.image(x, y, 'trees', 9 )
+          .setDisplaySize(GRID_SIZE * 0.8, GRID_SIZE * 0.8)
+          .setOrigin(0.5)
+      this.add(sprite);
     }
   }
 
