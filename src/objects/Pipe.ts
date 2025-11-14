@@ -33,18 +33,6 @@ export class Pipe extends Phaser.GameObjects.Container {
   }
 
   private createGraphics() {
-    // const graphics = this.scene.add.graphics();
-    // const S = GRID_SIZE;
-    // const half = S / 2;
-    // const lineWidth = S * 0.5;
-    // const R = half; // радиус средней линии
-    // const color = 0x00aaff;
-
-    // graphics.lineStyle(lineWidth, color, 1);
-    // const {cx, cy, a1, a2} = getPipeDrawing(this.type);
-    // graphics.arc(cx, cy, R, a1, a2);
-    // graphics.strokePath();
-    // this.add(graphics);
     const pipeSprite = this.scene.add.sprite(0, 0, 'pipe', 0)
         .setDisplaySize(GRID_SIZE, GRID_SIZE)
         .setOrigin(0.5);

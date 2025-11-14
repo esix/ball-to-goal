@@ -23,6 +23,7 @@ export enum StaticGameObject {
   Empty = 'Empty',
   Goal = 'Goal',
   Cannon = 'Cannon',
+  Pit = 'Pit',
 }
 
 export interface LevelData {
@@ -30,15 +31,16 @@ export interface LevelData {
   goal: { col: number; row: number };
   pipes: Array<{ type: PipeType; col: number; row: number }>;
   walls: Array<{ col: number; row: number }>;
+  pits: Array<{ col: number; row: number }>;
 }
 
 
 export type GameObject = PipeType | StaticGameObject | null;
 
 /**
- * Вычисляет позицию по центру клетки
- * @param col
- * @param row
+ * Return screen coordinated of the cell center
+ * @param col - column coordinate of cell
+ * @param row - row coordinate of cell
  */
 export function getCellPxCenter(col: number, row: number): {x: number, y: number} {
   const x = (col + 0.5) * GRID_SIZE;
@@ -65,23 +67,23 @@ export function isPipe(go: GameObject): go is PipeType {
 
 export function getPipedDirection(pipeType: PipeType, direction: Direction): Direction | null {
   switch (pipeType) {
-    case PipeType.LeftDown:                                                                       // → ╮    ← ╮
-      if (direction === Direction.Right) return Direction.Down;                                   //   ↓      ↑
+    case PipeType.LeftDown:                                                                         // → ╮    ← ╮
+      if (direction === Direction.Right) return Direction.Down;                                     //   ↓      ↑
       else if (direction === Direction.Up) return Direction.Left;
       break;
 
-    case PipeType.RightDown:                                                                      // ╭ ←    ╭ →
-      if (direction === Direction.Left) return Direction.Down;                                    // ↓      ↑
+    case PipeType.RightDown:                                                                        // ╭ ←    ╭ →
+      if (direction === Direction.Left) return Direction.Down;                                      // ↓      ↑
       else if (direction === Direction.Up) return Direction.Right;
       break;
 
-    case PipeType.LeftUp:                                                                         //   ↑      ↓
-      if (direction === Direction.Right) return Direction.Up;                                     // → ╯    ← ╯
+    case PipeType.LeftUp:                                                                           //   ↑      ↓
+      if (direction === Direction.Right) return Direction.Up;                                       // → ╯    ← ╯
       else if (direction === Direction.Down) return Direction.Left;
       break;
 
-    case PipeType.RightUp:                                                                        // ↑      ↓
-      if (direction === Direction.Left) return Direction.Up;                                      // ╰ ←    ╰ →
+    case PipeType.RightUp:                                                                          // ↑      ↓
+      if (direction === Direction.Left) return Direction.Up;                                        // ╰ ←    ╰ →
       else if (direction === Direction.Down) return Direction.Right;
       break;
 

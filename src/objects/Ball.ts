@@ -2,16 +2,18 @@ import Phaser from 'phaser';
 import {
   BALL_SPEED,
   Direction,
-  GameObject, getCellPxCenter,
+  GameObject,
+  getCellPxCenter,
   getOppositeDirection,
   getPipedDirection,
-  getPipeDrawing, getVelocity,
+  getPipeDrawing,
+  getVelocity,
   GRID_SIZE,
   isPipe,
   StaticGameObject
 } from "../utils";
 
-type FnGetGO = (col: number, row: number) => GameObject;
+type FnGetGO = (col: number, row: number) => GameObject | null;
 type FnDead = (ball: Ball, win: boolean) => unknown;
 
 
@@ -24,8 +26,7 @@ export class Ball extends Phaser.GameObjects.Container {
               public direction: Direction,
               private getGO: FnGetGO,
               private onCompeted: FnDead) {
-    const x = (col + 0.5) * GRID_SIZE;                                                              // позиция по центру клетки
-    const y = (row + 0.5) * GRID_SIZE;
+    const {x, y} = getCellPxCenter(col, row);
     super(scene, x, y);
 
     this.createGraphics();
@@ -91,13 +92,27 @@ export class Ball extends Phaser.GameObjects.Container {
     return {col: this.col + dirX, row: this.row + dirY};
   }
 
-  // move ball to the center of the cell
+  /**
+   * Move ball to the center of the cell
+   * @param col cell column to move ball in
+   * @param row cell row
+   * @private
+   */
   private moveToCenter(col: number, row: number): Promise<void> {
     return this.moveToRealCoords(
       (col + 0.5) * GRID_SIZE,                                                                      // To next border of cell
       (row + 0.5) * GRID_SIZE)
   }
 
+  /**
+   * Animate ball movements as arc
+   * @param centerX
+   * @param centerY
+   * @param radius
+   * @param startAngle
+   * @param endAngle
+   * @private
+   */
   private async arcAnimation(centerX: number, centerY: number, radius: number, startAngle: number, endAngle: number) {
     const startX = centerX + Math.cos(startAngle) * radius;
     const startY = centerY + Math.sin(startAngle) * radius;
@@ -133,17 +148,22 @@ export class Ball extends Phaser.GameObjects.Container {
     }
   }
 
+  /**
+   * Move ball from current cell to the next cell
+   * @private
+   */
   private async moveStep(): Promise<boolean> {
     const {col, row} = await this.moveToNextBorder();
     const go = this.getGO(col, row);
 
-    if (go === null || go === StaticGameObject.Cannon) {                                          // Out of screen
+    if (go === null || go === StaticGameObject.Cannon || go === StaticGameObject.Pit) {             // Out of screen or impassable objects
       this.onCompeted(this, false);
       return false;
     }
+
     if (isPipe(go)) {
       const newDirection = getPipedDirection(go, this.direction);
-      if (newDirection === null) {                                                                // Into the edge of pipe
+      if (newDirection === null) {                                                                  // Into the edge of pipe
         this.onCompeted(this, false);
         return false;
       }
@@ -158,6 +178,7 @@ export class Ball extends Phaser.GameObjects.Container {
 
       return true;
     }
+
     if (go === StaticGameObject.Goal) {
       await this.moveToCenter(col, row);
       await this.winAnimation();
@@ -193,7 +214,6 @@ export class Ball extends Phaser.GameObjects.Container {
     this.row = row;
     return true;
   };
-
 
   public destroy(fromScene?: boolean) {
     if (this.activeTween) {
