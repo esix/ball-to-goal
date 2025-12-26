@@ -6,7 +6,7 @@ import { Direction, FIELD_HEIGHT, FIELD_WIDTH, LevelData, PipeType } from "./uti
  */
 function makeLevel(s: string): LevelData {
   const rows = s.split('\n').slice(1).filter(row => !!row);
-  if (rows.length === FIELD_HEIGHT) throw new Error('Incorrect level height');
+  if (rows.length !== FIELD_HEIGHT) throw new Error('Incorrect level height');
   if (!rows.every(row => row.length === FIELD_WIDTH))  throw new Error('Incorrect level width');
 
   let cannon: { col: number; row: number; direction: Direction } | null = null;
@@ -60,7 +60,6 @@ const X_LEVELS = [
 ·→········~~··
 ··············
 ··············
-··············
 ··············`,
 
   ` LEVEL 1
@@ -69,7 +68,6 @@ const X_LEVELS = [
 ···╰·····▲····
 ·········○····
 ·→···╯···▲····
-··············
 ··············
 ··············
 ··············`,
@@ -82,8 +80,17 @@ const X_LEVELS = [
 ····←·╯╰·○····
 ··············
 ··············
-··············
 ··············`,
+
+  ` LEVEL 3
+··~~··········
+·╰·~~~╭··╮·╯··
+·····~~·······
+·····~~·······
+··○··~~···←···
+·····~~~······
+······~~······
+····~~~~~~····`,
 ];
 
 const LEVELS: LevelData[] = X_LEVELS.map(makeLevel);
