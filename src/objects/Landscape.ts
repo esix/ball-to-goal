@@ -65,7 +65,7 @@ export default class Landscape extends Phaser.GameObjects.Container {
 
     const GRASS = getTxtIndex(1, 1);
     const WATER = getTxtIndex(1, 7);
-    const STONE = getTxtIndex(1, 13);
+    const BRICK = getTxtIndex(1, 13);
     const SAND = getTxtIndex(6, 10);
 
     const addSprite = (col: number, row: number, atlas: string, idx: number, opts: Partial<{alpha: number}> = {}) => {
@@ -103,48 +103,54 @@ export default class Landscape extends Phaser.GameObjects.Container {
         }
       }
     };
-    groundify(this.level.cannon.col * 3 + 1, this.level.cannon.row * 3 + 1, STONE, false);
+    groundify(this.level.cannon.col * 3 + 1, this.level.cannon.row * 3 + 1, BRICK, false);
+    // ROADS
+    this.level.roads.forEach(({row, col}) => {
+      map[row * 3 + 1][col * 3 + 1] = BRICK;
+      if (map[(row - 1) * 3 + 1]?.[col * 3 + 1] === BRICK) {
+        map[row * 3][col * 3 + 1] = BRICK;
+        map[row * 3 - 1][col * 3 + 1] = BRICK;
+      }
+      if (map[row * 3 + 1]?.[(col - 1) * 3 + 1] === BRICK) {
+        map[row * 3 + 1][col * 3] = BRICK;
+        map[row * 3 + 1][col * 3 - 1] = BRICK;
+      }
+    });
+
     groundify(this.level.goal.col * 3 + 1, this.level.goal.row * 3 + 1, SAND, true);
     for (let pit of this.level.pits) {
       groundify(pit.col * 3 + 1, pit.row * 3 + 1, WATER, false);
     }
-
-    // map[1][1] = map[2][1] = WATER;
-
-    (window as any).map = map;
 
     for (let i = 0; i < H; i++) {
       for (let j = 0; j < W; j++) {
         const idx = map[i][j];
         if (idx === null) continue;
         const mask = collectNeighboursMask(map, i, j);
-        let correctedIdx = idx + TEXTURE_NEIGHBOUR_DELTA[mask & 0b1111];                    // texture corner correction (only close)
+        let correctedIdx = idx + TEXTURE_NEIGHBOUR_DELTA[mask & 0b1111];                            // texture corner correction (only for nearest neighbours)
 
+        // Additional corrections - for corners
         if (idx === WATER) {
           // FOR water another logic
-          if (mask === 0b01111111) correctedIdx = idx + 2 - 15;                                    // not the same just to the left-top
+          if (mask === 0b01111111) correctedIdx = idx + 2 - 15;                                     // not the same just to the left-top
           else if (mask === 0b10111111) correctedIdx = idx + 3 - 15;
-          else if (mask === 0b11011111) correctedIdx = idx + 2;                          // not the same just to the bottom-left
-          else if (mask === 0b11101111) correctedIdx = idx + 3;                          // not the same just to the bottom-right
+          else if (mask === 0b11011111) correctedIdx = idx + 2;                                     // not the same just to the bottom-left
+          else if (mask === 0b11101111) correctedIdx = idx + 3;                                     // not the same just to the bottom-right
 
         } else {
-          // if (mask === 0b01111111) correctedIdx = idx + 3;                                    // not the same just to the left-top
-          // else if (mask === 0b10111111) correctedIdx = idx + 2;
-          // else if (mask === 0b11011111) correctedIdx = idx - 15 + 3;                          // not the same just to the bottom-left
-          // else if (mask === 0b11101111) correctedIdx = idx - 15 + 2;                          // not the same just to the bottom-right
-          if (mask === 0b01111111) correctedIdx = idx + 3;                                    // not the same just to the left-top
+          if (mask === 0b01111111) correctedIdx = idx + 3;                                          // not the same just to the left-top
           else if (mask === 0b10111111) correctedIdx = idx + 2;
-          else if (mask === 0b11011111) correctedIdx = idx - 15 + 3;                          // not the same just to the bottom-left
-          else if (mask === 0b11101111) correctedIdx = idx - 15 + 2;                          // not the same just to the bottom-right
+          else if (mask === 0b11011111) correctedIdx = idx - 15 + 3;                                // not the same just to the bottom-left
+          else if (mask === 0b11101111) correctedIdx = idx - 15 + 2;                                // not the same just to the bottom-right
         }
 
         addSprite(j, i, 'garden', correctedIdx);
       }
     }
 
-    // Add stones (previously walls)
-    for (let wall of this.level.walls) {
-      const {x, y} = getCellPxCenter(wall.col, wall.row);
+    // Add stones
+    for (let stone of this.level.walls) {
+      const {x, y} = getCellPxCenter(stone.col, stone.row);
       const sprite = this.scene.add.image(x, y, 'trees', 9 )
           .setDisplaySize(GRID_SIZE * 0.8, GRID_SIZE * 0.8)
           .setOrigin(0.5)

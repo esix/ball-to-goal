@@ -26,12 +26,15 @@ export enum StaticGameObject {
   Pit = 'Pit',
 }
 
+export type LevelCoord = { row: number; col: number };
+
 export interface LevelData {
-  cannon: { col: number; row: number; direction: Direction };
-  goal: { col: number; row: number };
-  pipes: Array<{ type: PipeType; col: number; row: number }>;
-  walls: Array<{ col: number; row: number }>;
-  pits: Array<{ col: number; row: number }>;
+  cannon: LevelCoord & { direction: Direction };
+  goal: LevelCoord;
+  pipes: Array<LevelCoord & { type: PipeType }>;
+  walls: Array<LevelCoord>;
+  pits: Array<LevelCoord>;
+  roads: Array<LevelCoord>;
 }
 
 
