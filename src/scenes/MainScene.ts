@@ -39,7 +39,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.image('stone', 'assets/stone.png');
     this.load.spritesheet('garden', 'assets/landscape/1.png', {
       frameWidth: 32,
       frameHeight: 32,
