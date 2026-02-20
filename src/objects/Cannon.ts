@@ -23,6 +23,10 @@ export class Cannon extends Phaser.GameObjects.Container {
 
     if (this.direction === Direction.Left) {
       body.setScale(-GRID_SIZE / 32, GRID_SIZE / 32);
+    } else if (this.direction === Direction.Up) {
+      body.setAngle(-90);
+    } else if (this.direction === Direction.Down) {
+      body.setAngle(90);
     }
     this.add([body]);
   }
@@ -46,7 +50,7 @@ export class Cannon extends Phaser.GameObjects.Container {
 
   // Метод для установки обработчика выстрела извне
   public onFire(callback: () => void) {
-    const hitArea = this.getAt(1) as Phaser.GameObjects.Rectangle;                                  // 3-rd element — hitArea
+    const hitArea = this.getAt(1) as Phaser.GameObjects.Rectangle;                                  // 2nd element (index 1) — hitArea
     hitArea.removeAllListeners('pointerdown');
     hitArea.on('pointerdown', () => {
       this.scene.tweens.add({

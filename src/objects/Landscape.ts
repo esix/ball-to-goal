@@ -68,7 +68,7 @@ export default class Landscape extends Phaser.GameObjects.Container {
     const BRICK = getTxtIndex(1, 13);
     const SAND = getTxtIndex(6, 10);
 
-    const addSprite = (col: number, row: number, atlas: string, idx: number, opts: Partial<{alpha: number}> = {}) => {
+    const addSprite = (col: number, row: number, idx: number, opts: Partial<{alpha: number}> = {}) => {
       const x = col * GRID_SIZE / 3;
       const y = row * GRID_SIZE / 3;
 
@@ -82,7 +82,7 @@ export default class Landscape extends Phaser.GameObjects.Container {
     // grass
     for (let col = 0; col < W; col++) {
       for (let row = 0; row < H; row++) {
-        addSprite(col, row, 'garden', GRASS, {alpha: 0.6});
+        addSprite(col, row, GRASS, {alpha: 0.6});
       }
     }
 
@@ -144,7 +144,7 @@ export default class Landscape extends Phaser.GameObjects.Container {
           else if (mask === 0b11101111) correctedIdx = idx - 15 + 2;                                // not the same just to the bottom-right
         }
 
-        addSprite(j, i, 'garden', correctedIdx);
+        addSprite(j, i, correctedIdx);
       }
     }
 

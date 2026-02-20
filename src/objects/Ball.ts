@@ -14,7 +14,7 @@ import {
 } from "../utils";
 
 type FnGetGO = (col: number, row: number) => GameObject | null;
-type FnDead = (ball: Ball, win: boolean) => unknown;
+type FnComplete = (ball: Ball, win: boolean) => unknown;
 
 
 export class Ball extends Phaser.GameObjects.Container {
@@ -25,7 +25,7 @@ export class Ball extends Phaser.GameObjects.Container {
               public row: number,
               public direction: Direction,
               private getGO: FnGetGO,
-              private onCompeted: FnDead) {
+              private onCompleted: FnComplete) {
     const {x, y} = getCellPxCenter(col, row);
     super(scene, x, y);
 
@@ -157,14 +157,14 @@ export class Ball extends Phaser.GameObjects.Container {
     const go = this.getGO(col, row);
 
     if (go === null || go === StaticGameObject.Cannon || go === StaticGameObject.Pit) {             // Out of screen or impassable objects
-      this.onCompeted(this, false);
+      this.onCompleted(this, false);
       return false;
     }
 
     if (isPipe(go)) {
       const newDirection = getPipedDirection(go, this.direction);
       if (newDirection === null) {                                                                  // Into the edge of pipe
-        this.onCompeted(this, false);
+        this.onCompleted(this, false);
         return false;
       }
       // Moving to center of pipe
@@ -182,7 +182,7 @@ export class Ball extends Phaser.GameObjects.Container {
     if (go === StaticGameObject.Goal) {
       await this.moveToCenter(col, row);
       await this.winAnimation();
-      this.onCompeted(this, true);
+      this.onCompleted(this, true);
       return false;
     }
 
@@ -191,7 +191,7 @@ export class Ball extends Phaser.GameObjects.Container {
       if (isPipe(currentGo)) {
         const newDirection = getPipedDirection(currentGo, getOppositeDirection(this.direction));
         if (newDirection === null) {
-          this.onCompeted(this, false);
+          this.onCompleted(this, false);
           return false
         }
         this.direction = newDirection;

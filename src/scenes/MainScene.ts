@@ -30,6 +30,8 @@ export class MainScene extends Phaser.Scene {
   private balls: Ball[] = [];
   private goal!: Goal;
   private currentLevel: number;
+  private gridGraphics!: Phaser.GameObjects.Graphics;
+  private victoryContainer: Phaser.GameObjects.Container | null = null;
   private wallSet: Set<string> = new Set();                                                         // "col,row"
   private pitSet: Set<string> = new Set();
 
@@ -60,11 +62,15 @@ export class MainScene extends Phaser.Scene {
     this.currentLevel = i;
     setLevelToUrlHash(this.currentLevel);
 
+    this.victoryContainer?.destroy(true);
+    this.victoryContainer = null;
     this.cannon?.destroy(true);
     this.goal?.destroy();
     this.pipes.forEach(pipe => pipe.destroy(true));
     this.balls.forEach(ball => ball.destroy());
+    this.balls = [];
     this.garden?.destroy();
+    this.gridGraphics?.destroy();
 
     const level = LEVELS[i];
     this.garden = new Landscape(this, level);
@@ -90,6 +96,7 @@ export class MainScene extends Phaser.Scene {
     this.currentLevel = getLevelFromUrlHash(0);
     this.loadLevel(this.currentLevel);
     window.addEventListener('hashchange', this.onHashChange);
+    this.input.keyboard!.on('keydown-SPACE', () => this.launchBall());
   }
 
   private onHashChange = () => {
@@ -100,7 +107,8 @@ export class MainScene extends Phaser.Scene {
   };
 
   private drawGrid() {
-    const graphics = this.add.graphics();
+    this.gridGraphics = this.add.graphics();
+    const graphics = this.gridGraphics;
     graphics.lineStyle(1, 0xffffff, 0.3);
 
     for (let x = 0; x <= FIELD_WIDTH; x++) {                                                        // Вертикальные линии
@@ -154,13 +162,73 @@ export class MainScene extends Phaser.Scene {
 
     if (win) {
       if (this.currentLevel >= LEVELS.length - 1) {
-        this.add.text(400, 300, 'Все уровни пройдены! 🌟', { fontSize: '48px', color: '#fff' }).setOrigin(0.5);
-        return;
+        this.showVictoryScreen();
       } else {
         this.loadLevel(this.currentLevel + 1);
       }
     }
   };
+
+  private showVictoryScreen() {
+    const W = FIELD_WIDTH * GRID_SIZE;
+    const H = FIELD_HEIGHT * GRID_SIZE;
+    const cx = W / 2;
+    const cy = H / 2;
+    const pw = 860, ph = 380;
+
+    this.victoryContainer = this.add.container(0, 0);
+
+    // Dark overlay
+    const overlay = this.add.rectangle(0, 0, W, H, 0x000000, 0.65).setOrigin(0);
+
+    // Panel
+    const panel = this.add.graphics();
+    panel.fillStyle(0x12122a, 0.97);
+    panel.fillRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, 28);
+    panel.lineStyle(3, 0xf0c040, 1);
+    panel.strokeRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, 28);
+
+    // Title
+    const title = this.add.text(cx, cy - 110, '🌟  All Levels Complete!  🌟', {
+      fontSize: '52px',
+      color: '#f0c040',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    // Subtitle
+    const sub = this.add.text(cx, cy - 30, 'You mastered every pipe!', {
+      fontSize: '30px',
+      color: '#9090bb',
+    }).setOrigin(0.5);
+
+    // Button background (drawn via graphics so it can redraw on hover)
+    const btnW = 300, btnH = 74;
+    const btnCx = cx, btnCy = cy + 90;
+    const btnBg = this.add.graphics();
+
+    const drawBtn = (fill: number) => {
+      btnBg.clear();
+      btnBg.fillStyle(fill, 1);
+      btnBg.fillRoundedRect(btnCx - btnW / 2, btnCy - btnH / 2, btnW, btnH, 18);
+    };
+    drawBtn(0x27ae60);
+
+    const btnLabel = this.add.text(btnCx, btnCy, 'Play Again', {
+      fontSize: '34px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    // Invisible interactive hit zone over the button
+    const hitZone = this.add.rectangle(btnCx, btnCy, btnW, btnH, 0x000000, 0)
+      .setInteractive({ useHandCursor: true });
+
+    hitZone.on('pointerover', () => drawBtn(0x1e8449));
+    hitZone.on('pointerout',  () => drawBtn(0x27ae60));
+    hitZone.on('pointerdown', () => this.loadLevel(0));
+
+    this.victoryContainer.add([overlay, panel, title, sub, btnBg, btnLabel, hitZone]);
+  }
 
   private launchBall() {
     const ball = new Ball(this, this.cannon.col, this.cannon.row, this.cannon.direction, this.getGameObject, this.onBallCompleted);
