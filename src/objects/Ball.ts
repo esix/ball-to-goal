@@ -189,7 +189,8 @@ export class Ball extends Phaser.GameObjects.Container {
     if (go === StaticGameObject.Wall) {
       const currentGo = this.getGO(this.col, this.row);
       if (isPipe(currentGo)) {
-        const newDirection = getPipedDirection(currentGo, getOppositeDirection(this.direction));
+        const entryDirection = getOppositeDirection(this.direction);
+        const newDirection = getPipedDirection(currentGo, entryDirection);
         if (newDirection === null) {
           this.onCompleted(this, false);
           return false
@@ -198,7 +199,7 @@ export class Ball extends Phaser.GameObjects.Container {
 
         // Moving to center of pipe
         const {x, y} = getCellPxCenter(this.col, this.row);
-        const {cx, cy, a1, a2} = getPipeDrawing(currentGo, this.direction);
+        const {cx, cy, a1, a2} = getPipeDrawing(currentGo, entryDirection);
         await this.arcAnimation(x + cx, y + cy, GRID_SIZE / 2, a1, (a1 + a2) / 2);
 
       } else {
