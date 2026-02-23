@@ -1,0 +1,31 @@
+name: Trigger site rebuild
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Trigger esix.github.io rebuild
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.SITE_DEPLOY_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/esix/esix.github.io/dispatches \
+            -d '{"event_type":"demo-updated","client_payload":{"demo":"ball-to-goal"}}'
